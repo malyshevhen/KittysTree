@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import static java.util.stream.Collectors.*;
 
@@ -16,79 +15,106 @@ class Solution {
 
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
 
-        String[] firstMultipleInput = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+        String[] firstMultipleInput = bufferedReader.readLine().split(" ");
 
         int n = Integer.parseInt(firstMultipleInput[0]);
 
         int k = Integer.parseInt(firstMultipleInput[1]);
 
-        List<List<Integer>> tree = new ArrayList<>();
+        Map<Long, List<Long>> graph = new HashMap<>();
 
-        IntStream.range(0, n - 1).forEach(i -> {
-            try {
-                tree.add(
-                        Stream.of(bufferedReader.readLine().replaceAll("\\s+$", "").split(" "))
-                                .map(Integer::parseInt)
-                                .collect(toList()));
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
+        for (int i = 1; i < n; i++) {
+            String[] MultipleInput = bufferedReader.readLine().split(" ");
+
+            long firstInt = Long.parseLong(MultipleInput[0]);
+            long secondInt = Long.parseLong(MultipleInput[1]);
+
+            if (!graph.containsKey(firstInt)) {
+                graph.put(firstInt, new ArrayList<Long>());
             }
-        });
+            if (!graph.containsKey(secondInt)) {
+                graph.put(secondInt, new ArrayList<Long>());
+            }
+            graph.get(firstInt).add(secondInt);
+            graph.get(secondInt).add(firstInt);
+        }
 
-        List<List<Integer>> querySet = new ArrayList<>();
+        List<List<Long>> querySet = new ArrayList<>();
 
         for (int i = 0; i < k; i++) {
+
             int j = Integer.parseInt(bufferedReader.readLine());
-            querySet.add(Stream.of(bufferedReader.readLine().replaceAll("\\s+$", "").split(" "))
-                    .map(Integer::parseInt).collect(toList()));
+
+            querySet.add(Stream.of(bufferedReader.readLine().split(" "))
+                    .map(Long::parseLong)
+                    .collect(toList()));
 
         }
 
-        String s = "";
+        for (List<Long> query : querySet) {
 
-        for (List<Integer> query : querySet) {
+            long result = calcFollAnswer(graph, getPathPoints(query));
 
-            long result = calcFollAnswer(toGraph(tree), getPathPoints(query));
-
-            s += result + "\n";
-
+            System.out.println(result);
         }
-
-        System.out.println(s.strip());
 
         bufferedReader.close();
 
     }
 
-    public static long calcFollAnswer(Map<Integer, List<Integer>> graph, List<int[]> q) {
+    public static List<List<Long>> getPathPoints(List<Long> q) {
 
-        long mod = 1000000007;
-        long result = 0;
+        List<List<Long>> list = new LinkedList<>();
 
-        for (int[] js : q) {
-            result += ((js[0] * js[1]) * getDistance(graph, js));
+        if (q.size() > 2) {
+
+            for (int i = 0; i < q.size() - 1; i++) {
+
+                for (int y = i + 1; y < q.size(); y++) {
+                    list.add(List.of(q.get(i), q.get(y)));
+                }
+
+            }
+        } else if (q.size() == 2) {
+            list.add(List.of(q.get(0), q.get(1)));
+        }
+
+        return list;
+
+    }
+
+    public static long calcFollAnswer(Map<Long, List<Long>> graph, List<List<Long>> q) {
+
+        long mod = 1000000007L;
+        long result = 0L;
+
+        for (List<Long> js : q) {
+
+            long distance = getDistance(graph, js);
+
+            result += ((js.get(0) * js.get(1)) * distance);
         }
 
         return result % mod;
     }
 
-    public static int getDistance(Map<Integer, List<Integer>> graph, int[] pathPoints) {
+    public static long getDistance(Map<Long, List<Long>> graph, List<Long> pathPoints) {
 
-        int start = pathPoints[0];
-        int end = pathPoints[1];
+        long start = pathPoints.get(0);
+        long end = pathPoints.get(1);
 
-        List<Integer> visited = new ArrayList<>();
+        List<Long> visited = new ArrayList<>();
         visited.add(start);
 
-        Queue<int[]> queue = new LinkedList<>();
+        Queue<long[]> queue = new LinkedList<>();
 
-        int[] i = { start, 0 };
+        long[] i = { start, 0 };
         queue.add(i);
 
-        List<Integer> neighbors = new ArrayList<>();
+        List<Long> neighbors = new ArrayList<>();
 
         while (!queue.isEmpty()) {
-            int[] child = queue.poll();
+            long[] child = queue.poll();
 
             if (child[0] == end) {
                 return child[1];
@@ -96,12 +122,12 @@ class Solution {
 
             neighbors = graph.get(child[0]);
 
-            for (int neighbor : neighbors) {
+            for (long neighbor : neighbors) {
 
                 if (!visited.contains(neighbor)) {
 
                     visited.add(neighbor);
-                    int[] j = { neighbor, child[1] + 1 };
+                    long[] j = { neighbor, child[1] + 1 };
                     queue.add(j);
                 }
 
@@ -109,39 +135,6 @@ class Solution {
         }
 
         return 0;
-    }
-
-    public static List<int[]> getPathPoints(List<Integer> q) {
-
-        List<int[]> list = new LinkedList<>();
-        for (int i = 0; i < q.size() - 1; i++) {
-
-            list.add(new int[] { q.get(i), q.get(i + 1) });
-
-        }
-        list.add(new int[] { q.get(0), q.get(q.size() - 1) });
-
-        return list;
-
-    }
-
-    public static Map<Integer, List<Integer>> toGraph(List<List<Integer>> tree) {
-
-        Map<Integer, List<Integer>> resultGraph = new HashMap<>();
-
-        for (List<Integer> list : tree) {
-            if (!resultGraph.containsKey(list.get(0))) {
-                resultGraph.put(list.get(0), new ArrayList<Integer>());
-            }
-            if (!resultGraph.containsKey(list.get(1))) {
-                resultGraph.put(list.get(1), new ArrayList<Integer>());
-            }
-            resultGraph.get(list.get(0)).add(list.get(1));
-            resultGraph.get(list.get(1)).add(list.get(0));
-
-        }
-        return resultGraph;
-
     }
 
 }
