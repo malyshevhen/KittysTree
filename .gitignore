@@ -1,1 +1,10 @@
 /lib
+
+#idea files
+.idea
+*.iml
+*.ipr
+*.iws
+
+#vscode files
+.vscode
