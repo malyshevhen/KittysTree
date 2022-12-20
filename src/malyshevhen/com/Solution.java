@@ -3,245 +3,206 @@ package malyshevhen.com;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
+import java.util.StringTokenizer;
 
 class Solution {
-    private static final Map<Long, Node> graph = new HashMap<>();
+    private static Node[] nodes;
+    private static int[] distance;
+    private static boolean[] visited;
 
-        static class Node {
-        private final long data;
-        private final Set<Node> children;
-        private Status status;
-        private int distance;
 
-        private enum Status {
-            VISITED {
-                @Override
-                public boolean isVisited() {
-                    return true;
-                }
-            },
-            NOT_VISITED {
-                @Override
-                public boolean isNotVisited() {
-                    return true;
-                }
-            };
+    static class Node {
+        final int data;
+        Node[] children = new Node[0];
+        long[] cache;
 
-            public boolean isVisited() {
-                return false;
-            }
-
-            public boolean isNotVisited() {
-                return true;
-            }
-
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Node node = (Node) o;
-            return data == node.data;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(data);
-        }
-
-        public Node(long data) {
+        public Node(int data, int nodesMaxCount) {
             this.data = data;
-            this.children = new HashSet<>();
-            this.status = Status.NOT_VISITED;
-            this.distance = 0;
+            this.cache = new long[nodesMaxCount];
         }
 
-        public void addChild(Node child) {
-            this.children.add(child);
+        public int getData() {
+            return data;
         }
 
-        public void incrementDistance() {
-            this.distance += 1;
-        }
-
-        public void resetNode() {
-            this.status = Status.NOT_VISITED;
-            this.distance = 0;
-        }
-
-        public Set<Node> getChildren() {
+        public Node[] getChildren() {
             return children;
         }
 
-        public Status getStatus() {
-            return status;
+        public void addChild(Node child) {
+            if (this.children.length == 0) {
+                this.children = new Node[]{child};
+            } else {
+                var temp = this.children;
+
+                var updatedArray = new Node[temp.length + 1];
+
+                for (int i = 0; i < temp.length; i++) {
+                    updatedArray[i] = temp[i];
+                }
+                updatedArray[updatedArray.length - 1] = child;
+
+                this.children = updatedArray;
+            }
         }
 
-        public int getDistance() {
-            return distance;
+        public void addCache (int nodeData, long cache) {
+            this.cache[nodeData] = cache;
+        }
+        public long getCache (int nodeData) {
+            return this.cache[nodeData];
         }
 
-        public void setDistance(int distance) {
-            this.distance = distance;
-        }
-
-        public void setStatus(Status status) {
-            this.status = status;
+        public boolean ifCached (int nodeData) {
+            return this.cache[nodeData] != 0;
         }
     }
 
     public static void main(String[] args) throws IOException {
         var bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-        var settingNumbers = bufferedReader.readLine().split(" ");
+        var stringTokenizer = new StringTokenizer(bufferedReader.readLine());
 
-        int edgesCount = Integer.parseInt(settingNumbers[0]);
-        int querySetCount = Integer.parseInt(settingNumbers[1]);
+        int edgesCount = Integer.parseInt(stringTokenizer.nextToken());
+        int wayPointsSetCount = Integer.parseInt(stringTokenizer.nextToken());
+
+        nodes = new Node[edgesCount + 1];
+
+        for (int i = 0; i < nodes.length; i++) {
+            nodes[i] = new Node(i, edgesCount + 1);
+        }
+
+        visited = new boolean[edgesCount + 1];
+
+        Arrays.fill(visited, false);
+
+        distance = new int[edgesCount + 1];
+
+        Arrays.fill(distance, 0);
+
 
         for (int i = 0; i < edgesCount - 1; i++) {
-            var multipleInput = bufferedReader.readLine().split(" ");
+            stringTokenizer = new StringTokenizer(bufferedReader.readLine());
 
-            long firstNum = Long.parseLong(multipleInput[0]);
-            long secondNum = Long.parseLong(multipleInput[1]);
+            int firstNum = Integer.parseInt(stringTokenizer.nextToken());
+            int secondNum = Integer.parseInt(stringTokenizer.nextToken());
 
             addNodeToGraph(firstNum, secondNum);
         }
 
-        var querySet = new long[querySetCount][];
+        for (int i = 0; i < wayPointsSetCount; i++) {
+            int sizeOfSet = Integer.parseInt(bufferedReader.readLine());
 
-        for (int i = 0; i < querySetCount; i++) {
-            var sizeOfSet = Integer.parseInt(bufferedReader.readLine());
-            var set = new long[sizeOfSet];
+            var set = new int[sizeOfSet];
 
-            var multipleInput = bufferedReader.readLine().split(" ");
+            stringTokenizer = new StringTokenizer(bufferedReader.readLine());
 
             for (int j = 0; j < set.length; j++) {
-                set[j] = Long.parseLong(multipleInput[j]);
+                set[j] = Integer.parseInt(stringTokenizer.nextToken());
             }
-            querySet[i] = set;
-        }
 
-        for (var query : querySet) {
-            var pathPointsSet = getPathPoints(query);
-            var calculateResult = calcFollAnswer(graph,pathPointsSet);
-            System.out.println(calculateResult);
+            var wayPoints = getEndWayPoints(set);
+            var computation = calcFollAnswer(wayPoints);
+            System.out.println(computation);
         }
     }
 
-    private static void addNodeToGraph(long firstNodeData, long secondNodeData) {
-        if (graph.containsKey(firstNodeData)) {
-            if (graph.containsKey(secondNodeData)) {
-                var firstNode = graph.get(firstNodeData);
-                var secondNode = graph.get(secondNodeData);
-
-                firstNode.addChild(secondNode);
-                secondNode.addChild(firstNode);
-
-                graph.replace(firstNodeData, firstNode);
-                graph.replace(secondNodeData, secondNode);
-            } else {
-                var firstNode = graph.get(firstNodeData);
-                var secondNode = new Node(secondNodeData);
-
-                firstNode.addChild(secondNode);
-                secondNode.addChild(firstNode);
-
-                graph.replace(firstNodeData, firstNode);
-                graph.put(secondNodeData, secondNode);
-            }
-        } else {
-            if (graph.containsKey(secondNodeData)) {
-                var firstNode = new Node(firstNodeData);
-                var secondNode = graph.get(secondNodeData);
-
-                firstNode.addChild(secondNode);
-                secondNode.addChild(firstNode);
-
-                graph.put(firstNodeData, firstNode);
-                graph.replace(secondNodeData, secondNode);
-            } else {
-                var firstNode = new Node(firstNodeData);
-                var secondNode = new Node(secondNodeData);
-
-                firstNode.addChild(secondNode);
-                secondNode.addChild(firstNode);
-
-                graph.put(firstNodeData, firstNode);
-                graph.put(secondNodeData, secondNode);
-            }
-        }
+    private static void addNodeToGraph(int firstNodeData, int secondNodeData) {
+        nodes[firstNodeData].addChild(nodes[secondNodeData]);
+        nodes[secondNodeData].addChild(nodes[firstNodeData]);
     }
 
-    public static List<long[]> getPathPoints(long[] q) {
-        var list = new LinkedList<long[]>();
+    public static int[][] getEndWayPoints(int[] wayPoints) {
+        int arrayLength = (((wayPoints.length - 1) * wayPoints.length) / 2);
+        var list = new int[arrayLength][];
 
-        if (q.length > 2) {
-            for (int i = 0; i < q.length - 1; i++) {
-                for (int y = i + 1; y < q.length; y++) {
-                    long[] points = {q[i], q[y]};
-                    list.add(points);
+        if (wayPoints.length == 1) {
+            return list;
+        } else if (wayPoints.length == 2) {
+            list[0] = wayPoints;
+        } else if (wayPoints.length > 2) {
+            int counter = 0;
+
+            for (int i = 0; i < wayPoints.length - 1; i++) {
+                for (int y = i + 1; y < wayPoints.length; y++) {
+                    int[] points = {wayPoints[i], wayPoints[y]};
+                    list[counter] = points;
+                    counter++;
                 }
             }
-        } else if (q.length == 2) {
-            list.add(q);
         }
 
         return list;
     }
 
-    public static long calcFollAnswer(Map<Long, Node> graph, List<long[]> q) {
+    public static long calcFollAnswer(int[][] wayPointsSet) {
         long mod = 1_000_000_007L;
-        long result = 0L;
+        long temp = 0L;
 
-        for (var js : q) {
-            long distance = getDistance(graph.get(js[0]), graph.get(js[1]));
-
-            result += ((js[0] * js[1]) * distance);
+        if (wayPointsSet.length == 0) {
+            return 0L;
         }
-        result = result % mod;
 
-        return result;
+        for (var wayPoints : wayPointsSet) {
+            int startPoint = wayPoints[0];
+            int endPoint = wayPoints[1];
+
+            if (startPoint > endPoint) {
+                int tmp = startPoint;
+                startPoint = endPoint;
+                endPoint = tmp;
+            }
+
+            if (nodes[startPoint].ifCached(endPoint)) {
+                long tempData = nodes[startPoint].getCache(endPoint);
+                temp = temp + tempData;
+            } else {
+            long distance = getDistance(startPoint, endPoint);
+
+            long calculation = ((long) startPoint * (long) endPoint) * distance;
+
+            temp += calculation;
+
+                nodes[startPoint].addCache(endPoint, calculation);
+            }
+        }
+        return temp % mod;
     }
 
-    public static long getDistance(Node start, Node end) {
-        start.setStatus(Node.Status.VISITED);
+    public static long getDistance(int start, int end) {
+        if (start == end) {
+            return 0L;
+        }
+
+        visited[start] = true;
 
         var bfsQueue = new LinkedList<Node>();
 
-        bfsQueue.add(start);
+        bfsQueue.add(nodes[start]);
 
         while (!bfsQueue.isEmpty()) {
             var currentNode = bfsQueue.poll();
+            int currentNodeDistance = distance[currentNode.data];
 
-            if (currentNode.equals(end)) {
-                resetNodes();
-                return currentNode.getDistance();
+            if (currentNode.data == end) {
+                Arrays.fill(distance, 0);
+                Arrays.fill(visited, false);
+
+                return currentNodeDistance;
             }
 
-            var children = currentNode.getChildren();
+            var childrenSet = nodes[currentNode.data].getChildren();
 
-            for (var child : children) {
-                if (child.getStatus().isNotVisited()) {
-                    child.setStatus(Node.Status.VISITED);
-                    child.setDistance(currentNode.getDistance());
-                    child.incrementDistance();
+            for (var child : childrenSet) {
+                if (!visited[child.getData()]) {
+                    visited[child.getData()] = true;
+                    distance[child.getData()] = currentNodeDistance + 1;
                     bfsQueue.add(child);
                 }
             }
         }
 
         return 0;
-    }
-
-    private static void resetNodes() {
-        graph.values().forEach(Node::resetNode);
     }
 }
